@@ -249,7 +249,7 @@ public:
 	counted_ptr(internal_counter* ptr = nullptr) : counted_internals(ptr) {}
 	counted_ptr(const counted_ptr&) = delete;
 	counted_ptr(counted_ptr&& other) : counted_internals(other.counted_internals) {other.counted_internals = nullptr;}
-	~counted_ptr() {if(counted_internals){counted_internals->release();}}
+	~counted_ptr() {if(counted_internals != nullptr){counted_internals->release();}}
 	
 	//Assignment Operators
 	counted_ptr& operator=(const counted_ptr&) = delete;
@@ -279,7 +279,7 @@ private:
 
 template <class T>
 typename double_ref_counter<T>::counted_ptr& double_ref_counter<T>::counted_ptr::operator=(counted_ptr&& other){
-	if(counted_internals){
+	if(counted_internals != nullptr){
 		counted_internals->release();
 	}
 	counted_internals = other.counted_internals;

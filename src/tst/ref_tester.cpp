@@ -140,7 +140,7 @@ void test_scenario(int wrkrs, int cprs, int mvrs){
 	}
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char* argv[]){
 	std::srand(std::time(0));
 	
 	if(argc < 4){
