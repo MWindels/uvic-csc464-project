@@ -24,7 +24,7 @@ public:
 	using comparer = Compare;
 	
 	//Constructors/Destructor
-	hash_table(size_type s = 1) : definitive_table(0, s >= 1 ? s : 1) {}
+	hash_table(size_type s = 1) : definitive_table(s >= 1 ? s : 1) {}
 	hash_table(const hash_table& other) : definitive_table(other.definitive_table) {}	//Shallow copy.
 	hash_table(hash_table&& other) : definitive_table(std::move(other.definitive_table)) {}
 	~hash_table() = default;
@@ -69,14 +69,14 @@ void hash_table<K, V, Hash, Compare>::generic_set(const key_type& key, const val
 	typename table::set_result result = table::set_result::failure;
 	typename double_ref_counter<table>::counted_ptr prev_tbl, tbl = definitive_table.obtain();
 	if(!tbl.has_data()){
-		if(!definitive_table.try_replace(tbl, 0, 1)){	//Failure implies someone else made it non-null.
+		if(!definitive_table.try_replace(tbl, 1)){	//Failure implies someone else made it non-null.
 			tbl = definitive_table.obtain();
 		}
 	}
 	while(result != table::set_result::insert){	//Update appropriate kv_pairs in each table until an insert.
 		if(!tbl.has_data()){
 			if(result == table::set_result::failure && !is_tombstone){
-				prev_tbl->next.try_replace(tbl, prev_tbl->id + 1, table::resize_factor * prev_tbl->size);	//Again, failure implies someone else made it non-null.
+				prev_tbl->next.try_replace(tbl, table::resize_factor * prev_tbl->size);	//Again, failure implies someone else made it non-null.
 				tbl = prev_tbl->next.obtain();
 			}else{
 				break;	//If updates occurred but no insert (or if nothing occurred and the pair was a tombstone), its fine to simply terminate.
@@ -110,7 +110,7 @@ public:
 	
 	//Constructors/Destructor
 	table() = delete;
-	table(size_type i, size_type s) : id(i), size(s), capacity(size_type(std::ceil(s * capacity_percentage))), table_counters(counters{0, 0, false}), next(), cells(new double_ref_counter<const kv_pair>[s]) {}
+	table(size_type s) : size(s), capacity(size_type(std::ceil(s * capacity_percentage))), table_counters(counters{0, 0, false}), next(), cells(new double_ref_counter<const kv_pair>[s]) {}
 	table(const table&) = delete;
 	table(table&&) = delete;
 	~table() {delete [] cells;}
@@ -135,8 +135,7 @@ private:
 		bool resize_flag;
 	};
 	
-	//Immutable (Public) Data Members
-	const size_type id;
+	//Immutable Data Members
 	const size_type size;
 	const size_type capacity;
 	

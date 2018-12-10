@@ -6,8 +6,22 @@
 #include <iostream>
 #include <functional>
 #include "lib/lockfree/hash_table.hpp"
+//#include "lib/locking/hash_table.hpp"
 
 std::mutex out_mu;
+
+template <class T>
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec){
+	out << '[';
+	for(auto i = vec.begin(); i != vec.end(); ++i){
+		out << *i;
+		if((i + 1) != vec.end()){
+			out << ", ";
+		}
+	}
+	out << ']';
+	return out;
+}
 
 template <class T>
 void getter(int i, const lockfree::hash_table<int, T>& table){
@@ -31,7 +45,8 @@ void setter(int i, lockfree::hash_table<int, T>& table){
 		std::unique_lock lk(out_mu);
 		std::cout << "[Setter " << i << "] Setting key " << i << "...\n";
 	}
-	table.set(i, "SET: " + std::to_string(i));
+	//table.set(i, "SET: " + std::to_string(i));
+	table.set(i, T(i, i));
 	{
 		std::unique_lock lk(out_mu);
 		std::cout << "[Setter " << i << "] Set\n";
@@ -131,7 +146,7 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 	
-	test_scenario<std::string>(std::atoi(argv[1]), std::atoi(argv[2]), std::atoi(argv[3]));
+	test_scenario<std::vector<int>>(std::atoi(argv[1]), std::atoi(argv[2]), std::atoi(argv[3]));
 	
 	return 0;
 }
