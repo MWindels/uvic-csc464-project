@@ -3,3 +3,6 @@ ref_tester_make: src/tst/ref_tester.cpp
 
 table_tester_make: src/tst/table_tester.cpp
 	g++ -Wall -std=c++17 -Isrc src/tst/table_tester.cpp -pthread -latomic -march=native -o table_tester
+
+table_timer_make: src/tst/table_timer.cpp
+	g++ -Wall -std=c++17 -Isrc src/tst/table_timer.cpp -pthread -latomic -march=native -o table_timer

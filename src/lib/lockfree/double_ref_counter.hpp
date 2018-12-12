@@ -67,7 +67,7 @@ private:
 	class internal_counter;
 	struct external_counter{
 		internal_counter* internals;
-		int ex_count;
+		unsigned int ex_count;
 	};
 	
 	//Data Members
@@ -185,7 +185,7 @@ public:
 	
 	//Referrer Functions
 	void attach();
-	void detach(int observers);
+	void detach(unsigned int observers);
 	
 private:
 	
@@ -193,7 +193,7 @@ private:
 	
 	//Private Types
 	struct internal_counts{
-		int referrers;
+		unsigned int referrers;
 		int in_count;
 	};
 	
@@ -225,7 +225,7 @@ void double_ref_counter<T>::internal_counter::attach(){
 }
 
 template <class T>
-void double_ref_counter<T>::internal_counter::detach(int observers){
+void double_ref_counter<T>::internal_counter::detach(unsigned int observers){
 	internal_counts old_counters = counters.load(), new_counters;	//memory order?
 	do{
 		new_counters = old_counters;

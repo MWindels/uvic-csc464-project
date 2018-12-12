@@ -17,7 +17,7 @@ class hash_table{
 public:
 	
 	//Public Types
-	using size_type = int;
+	using size_type = unsigned int;
 	using key_type = K;
 	using value_type = V;
 	using hasher = Hash;
@@ -110,7 +110,7 @@ public:
 	
 	//Constructors/Destructor
 	table() = delete;
-	table(size_type s) : size(s), capacity(size_type(std::ceil(s * capacity_percentage))), table_counters(counters{0, 0, false}), next(), cells(new double_ref_counter<const kv_pair>[s]) {}
+	table(size_type s) : size(s), capacity(size_type(std::ceil(s * capacity_percentage))), table_counters(counters{0, 0}), next(), cells(new double_ref_counter<const kv_pair>[s]) {}
 	table(const table&) = delete;
 	table(table&&) = delete;
 	~table() {delete [] cells;}
@@ -131,8 +131,10 @@ private:
 	struct kv_pair;
 	struct counters{
 		size_type elements;
-		size_type inserters;	//Wrap flag up in here?
-		bool resize_flag;
+		size_type inserters_and_flag;	//Flag is wrapped up in here so this struct is not paddded to an irregular (non power-of-two) size.
+		
+		static constexpr size_type resize_flag_mask = 1 << (8 * sizeof(size_type) - 1);
+		static constexpr size_type inserters_mask = ~resize_flag_mask;
 	};
 	
 	//Immutable Data Members
@@ -215,11 +217,15 @@ bool hash_table<K, V, Hash, Compare>::table::attempt_insert(){
 	counters old_counters = table_counters.load(), new_counters;	//memory order?
 	do{
 		new_counters = old_counters;
-		if(new_counters.resize_flag){
+		if(new_counters.inserters_and_flag & counters::resize_flag_mask){
 			return false;
 		}
-		++(new_counters.inserters);
-		new_counters.resize_flag = (new_counters.elements + new_counters.inserters == capacity);
+		++(new_counters.inserters_and_flag);	//Increment may overflow into the flag bit.
+		if(new_counters.elements + (new_counters.inserters_and_flag & counters::inserters_mask) == capacity){	//Overflow is rectified here by taking everything except the flag bit.
+			new_counters.inserters_and_flag = counters::resize_flag_mask | (new_counters.inserters_and_flag & counters::inserters_mask);
+		}else{
+			new_counters.inserters_and_flag = new_counters.inserters_and_flag & counters::inserters_mask;
+		}
 	}while(!table_counters.compare_exchange_weak(old_counters, new_counters));	//memory order?
 	return true;
 }
@@ -229,7 +235,7 @@ typename hash_table<K, V, Hash, Compare>::table::counters hash_table<K, V, Hash,
 	counters old_counters = table_counters.load(), new_counters;	//memory order?
 	do{
 		new_counters = old_counters;
-		--(new_counters.inserters);
+		new_counters.inserters_and_flag = (new_counters.inserters_and_flag & counters::resize_flag_mask) | ((new_counters.inserters_and_flag - 1) & counters::inserters_mask);
 		if(success){
 			++(new_counters.elements);
 		}
